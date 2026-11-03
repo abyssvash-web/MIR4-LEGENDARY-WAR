@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<style>
+  :root {
+    --bg: #09090c;
+    --card: #17171c;
+    --line: #2b2b33;
+    --text: #f2f2f5;
+    --muted: #9a9aa6;
+    --red: #e30613;
+    --red-hi: #ff2a38;
+    --glow: rgba(227, 6, 19, .45);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid; place-items: center; padding: 24px;
+    background:
+      radial-gradient(60% 50% at 50% 50%, rgba(227,6,19,.18), transparent 70%),
+      var(--bg);
+    color: var(--text);
+    font: 400 15px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .card {
+    width: 100%; max-width: 420px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: 0 0 0 1px rgba(227,6,19,.25), 0 0 60px var(--glow);
+    overflow: hidden;
+  }
+  .head { padding: 24px 28px 20px; border-bottom: 1px solid var(--line); }
+  .head small { color: var(--red); font: 600 13px/1 Orbitron, Inter, sans-serif; letter-spacing: .2em; }
+  .head h1 {
+    margin: 10px 0 0;
+    font: 800 30px/1.1 Orbitron, Inter, system-ui, sans-serif;
+    letter-spacing: .02em;
+  }
+  .body { padding: 24px 28px 28px; display: grid; gap: 20px; }
+  .body p { margin: 0; color: var(--muted); }
+  .cf { display: flex; justify-content: center; min-height: 65px; }
+  button {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 15px 20px;
+    border: 0; border-radius: 14px; cursor: pointer;
+    background: var(--red); color: #fff;
+    font: 600 16px/1 Inter, system-ui, sans-serif;
+    box-shadow: 0 0 28px var(--glow);
+    transition: background .15s, transform .1s;
+  }
+  button:hover:not(:disabled) { background: var(--red-hi); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+  button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+  #msg { min-height: 20px; margin: 0; font-size: 14px; color: #ff6b75; text-align: center; }
+  .foot { font-size: 13px; text-align: center; }
+  @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="head">
+      <small>GYBABO</small>
+      <h1>Create account</h1>
+    </div>
+    <div class="body">
+      <p>Verify you're human, then continue to the official registration page to finish creating your account.</p>
+
+      <div class="cf">
+        <!-- Replace with your Cloudflare Turnstile SITE key (public) -->
+        <div class="cf-turnstile"
+             data-sitekey="YOUR_TURNSTILE_SITE_KEY"
+             data-theme="dark"
+             data-callback="onVerified"
+             data-expired-callback="onExpired"
+             data-error-callback="onExpired"></div>
+      </div>
+
+      <button id="go" type="button" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm-9 2v-2H4v2H2v2h2v2h2v-2h2v-2Zm9 0c-3.3 0-9 1.7-9 5v1h18v-1c0-3.3-5.7-5-9-5Z"/></svg>
+        Create account
+      </button>
+      <p id="msg" role="alert"></p>
+      <p class="foot">By continuing, you agree to follow the game rules and community guidelines.</p>
+    </div>
+  </main>
+
+<script>
+  var token = "";
+  var btn = document.getElementById("go");
+  var msg = document.getElementById("msg");
+
+  function onVerified(t) { token = t; btn.disabled = false; msg.textContent = ""; }
+  function onExpired() { token = ""; btn.disabled = true; }
+
+  btn.addEventListener("click", async function () {
+    if (!token) return;
+    btn.disabled = true;
+    msg.textContent = "";
+    try {
+      var res = await fetch("/api/go", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ turnstileToken: token })
+      });
+      var data = await res.json().catch(function () { return null; });
+      if (data && data.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      msg.textContent = (data && data.message) || "Something went wrong. Try again.";
+    } catch (e) {
+      msg.textContent = "Network error. Check your connection and try again.";
+    }
+    if (window.turnstile) turnstile.reset();
+    token = "";
+  });
+</script>
+</body>
+</html>
